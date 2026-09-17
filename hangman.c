@@ -94,9 +94,9 @@ bool hangman_game(const char* word, u32 playerHp)
         }
 
         if (game_lost(playerHp)) {
-            free_string(dashedString);
             printf("Your current word: %s\n", dashedString->data);
             printf("The original word was: %s\n", word);
+            free_string(dashedString);
             return false;
         }
     }
@@ -109,12 +109,7 @@ bool hangman_game(const char* word, u32 playerHp)
 
 void display_outcome(bool gameResult)
 {
-    if (!gameResult) {
-        printf("You lost!\n");
-        return;
-    }
-
-    printf("You won!\n");
+    printf(gameResult ? "You won!\n" : "You lost!\n");
 }
 
 int main(int argc, char* argv[])
