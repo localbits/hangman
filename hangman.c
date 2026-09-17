@@ -122,14 +122,13 @@ void clear_screen(void)
 char game_turn(String* str, u32 playerHp)
 {
     char letter;
-    clear_screen();
     printf("\n-- YOUR TURN --\n");
     printf("Your HP: %d\n", playerHp);
     printf("Your current word: %s\n", str->data);
     printf("Type your guess: ");
     scanf(" %c", &letter);
-    printf("\n");
-
+    clear_screen();
+    
     return letter;
 }
 
