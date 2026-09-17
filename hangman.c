@@ -60,7 +60,6 @@ String* get_random_word_from_file(const char* fPath)
 
     srand(time(NULL));
     u32 randomWordIndex = rand() % wordCount;
-    randomWordIndex = 7;
 
     u32 wordsRead = 0;
     while (wordsRead != randomWordIndex - 1) {
@@ -76,7 +75,6 @@ String* get_random_word_from_file(const char* fPath)
     while (true) {
         char c = fgetc(file);
         if (c == EOF || c == '\n') {
-            wordSize++;
             break;
         }
         wordSize++;
@@ -189,8 +187,6 @@ int main(int argc, char* argv[])
     }
 
     String* word = get_random_word_from_file(argv[1]);
-    printf("strlen: %zu", strlen(word->data));
-    printf("str: %s", word->data);
 
     u32 hp = 5;
     bool gameResult = hangman_game(word->data, hp);
