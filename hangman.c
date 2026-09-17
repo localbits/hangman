@@ -38,7 +38,7 @@ void free_string(String* str)
 
 String* get_random_word_from_file(const char* fPath)
 {
-    FILE* file = fopen(fPath, "r");
+    FILE* file = fopen(fPath, "rb");
     if (file == NULL) {
         printf("Failed to open file %s", fPath);
         return NULL;
@@ -52,6 +52,7 @@ String* get_random_word_from_file(const char* fPath)
             continue;
         }
         if (c == EOF) {
+            wordCount++;
             break;
         }
     }
@@ -59,18 +60,17 @@ String* get_random_word_from_file(const char* fPath)
     rewind(file);
 
     srand(time(NULL));
+
     u32 randomWordIndex = rand() % wordCount;
 
     u32 wordsRead = 0;
-    while (wordsRead != randomWordIndex - 1) {
+    while (wordsRead != randomWordIndex) {
         char c = fgetc(file);
         if (c == '\n') {
             wordsRead++;
         }
     }
     
-    FILE* mark = file;
-
     u32 wordSize = 0;
     while (true) {
         char c = fgetc(file);
@@ -79,14 +79,16 @@ String* get_random_word_from_file(const char* fPath)
         }
         wordSize++;
     }
-
+        
     String* string = (String*)malloc(sizeof(String));
     char* word = (char*)malloc(sizeof(char) * wordSize + 1);
     word[wordSize] = '\0';
 
+    fseek(file, -(wordSize + 1), SEEK_CUR);
+
     u32 i = 0;
     while (true) {
-        char c = fgetc(mark);
+        char c = fgetc(file);
         if (c == EOF || c == '\n') {
             break;
         }
@@ -96,7 +98,7 @@ String* get_random_word_from_file(const char* fPath)
 
     string->data = word;
     string->length = wordSize;
-
+    
     fclose(file);
 
     return string;
