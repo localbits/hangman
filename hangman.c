@@ -98,7 +98,7 @@ String* get_random_word_from_file(const char* fPath)
 
     string->data = word;
     string->length = wordSize;
-    
+
     fclose(file);
 
     return string;
@@ -114,10 +114,15 @@ bool game_lost(u32 playerHp)
     return playerHp == 0;
 }
 
+void clear_screen(void)
+{
+    system("cls");
+}
+
 char game_turn(String* str, u32 playerHp)
 {
     char letter;
-
+    clear_screen();
     printf("\n-- YOUR TURN --\n");
     printf("Your HP: %d\n", playerHp);
     printf("Your current word: %s\n", str->data);
@@ -148,8 +153,13 @@ bool find_letter_matches(const char* word, String* str, char letter, u32* letter
     return matchFound;
 }
 
-bool hangman_game(const char* word, u32 playerHp)
+bool hangman_game(const char* word)
 {
+    printf("How many lives would you like? ");
+    u32 playerHp;
+    scanf("%d", &playerHp);
+    clear_screen();
+
     String* dashedString = dashed_string(word);
     u32 dashes = dashedString->length;
     u32 lettersFound = 0;
@@ -190,8 +200,7 @@ int main(int argc, char* argv[])
 
     String* word = get_random_word_from_file(argv[1]);
 
-    u32 hp = 5;
-    bool gameResult = hangman_game(word->data, hp);
+    bool gameResult = hangman_game(word->data);
     display_outcome(gameResult);
     free_string(word);
 
