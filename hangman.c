@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 #include "types.h"
 
 typedef struct {
@@ -33,6 +34,74 @@ void free_string(String* str)
     free(str->data);
     free(str);
     str = NULL;
+}
+
+String* get_random_word_from_file(const char* fPath)
+{
+    FILE* file = fopen(fPath, "r");
+    if (file == NULL) {
+        printf("Failed to open file %s", fPath);
+        return NULL;
+    }
+
+    u32 wordCount = 0;
+    while (true) {
+        char c = fgetc(file);
+        if (c == '\n') {
+            wordCount++;
+            continue;
+        }
+        if (c == EOF) {
+            break;
+        }
+    }
+
+    rewind(file);
+
+    srand(time(NULL));
+    u32 randomWordIndex = rand() % wordCount;
+    randomWordIndex = 7;
+
+    u32 wordsRead = 0;
+    while (wordsRead != randomWordIndex - 1) {
+        char c = fgetc(file);
+        if (c == '\n') {
+            wordsRead++;
+        }
+    }
+    
+    FILE* mark = file;
+
+    u32 wordSize = 0;
+    while (true) {
+        char c = fgetc(file);
+        if (c == EOF || c == '\n') {
+            wordSize++;
+            break;
+        }
+        wordSize++;
+    }
+
+    String* string = (String*)malloc(sizeof(String));
+    char* word = (char*)malloc(sizeof(char) * wordSize + 1);
+    word[wordSize] = '\0';
+
+    u32 i = 0;
+    while (true) {
+        char c = fgetc(mark);
+        if (c == EOF || c == '\n') {
+            break;
+        }
+        word[i] = c;
+        i++;
+    }
+
+    string->data = word;
+    string->length = wordSize;
+
+    fclose(file);
+
+    return string;
 }
 
 bool game_won(u32 lettersFound, u32 dashes)
@@ -115,16 +184,18 @@ void display_outcome(bool gameResult)
 int main(int argc, char* argv[])
 {
     if (argc != 2) {
-        printf("Provide a word to be guessed as an argument\n");
+        printf("Provide a word list file as an argument\n");
         exit(EXIT_FAILURE);
     }
 
-    const char* word = argv[1];
+    String* word = get_random_word_from_file(argv[1]);
+    printf("strlen: %zu", strlen(word->data));
+    printf("str: %s", word->data);
 
     u32 hp = 5;
-    bool gameResult = hangman_game(word, hp);
+    bool gameResult = hangman_game(word->data, hp);
     display_outcome(gameResult);
+    free_string(word);
 
     return 0;
 }
-
