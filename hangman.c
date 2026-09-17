@@ -44,6 +44,7 @@ bool game_lost(u32 playerHp)
 {
     return playerHp == 0;
 }
+
 char game_turn(String* str, u32 playerHp)
 {
     char letter;
@@ -115,7 +116,6 @@ void display_outcome(bool gameResult)
 
     printf("You won!\n");
 }
-
 
 int main(int argc, char* argv[])
 {
