@@ -1,5 +1,4 @@
 #include "word_utils.h"
-#include <time.h>
 
 String* get_random_word_from_file(const char* fPath)
 {
@@ -46,6 +45,7 @@ String* get_random_word_from_file(const char* fPath)
         word->data[j] = buffer->data[i];
     }
 
+    close_file(file);
     free_string(buffer);
     
     return word;

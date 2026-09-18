@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "word_utils.h"
+#include "io_utils.h"
 #include "types.h"
 
 bool game_won(u32 lettersFound, u32 underscores)
@@ -15,56 +16,72 @@ bool game_lost(u32 playerHp)
     return playerHp == 0;
 }
 
-void clear_screen(void)
+static u32 hash_char(char c)
 {
-    #ifdef PLATFORM_WINDOWS
-        system("cls");
-    #else
-        system("clear");
-    #endif
+    return tolower(c) - '0' - 49;
 }
 
-char game_turn(String* str, u32 playerHp)
+void parse_player_guess(String* word, String* playerWord, bool* usedLetters, char guess, u32* hp, u32* lettersFound)
 {
-    char letter;
+    bool matchFound = false;
+    u32 guessIdx = hash_char(guess);
+
+    if (usedLetters[guessIdx]) {
+        (*hp)--;
+        printf("Letter already previously guessed!\n");
+        return;
+    }
+
+    usedLetters[guessIdx] = true;
+
+    for (u32 i = 0; i < word->length; ++i) {
+        if (word->data[i] == guess) {
+            playerWord->data[i] = guess;
+            (*lettersFound)++;
+            matchFound = true;
+        }
+    }
+
+    if (!matchFound) {
+        (*hp)--;
+    }
+}
+
+void display_game_info(String* playerWord, u32 playerHp)
+{
     printf("\n-- YOUR TURN --\n");
     printf("Your HP: %d\n", playerHp);
-    printf("Your current word: %s\n", str->data);
+    printf("Your current word: %s\n", playerWord->data);
+}
+
+char game_turn(String* playerWord, u32 playerHp)
+{
+    char letter;
+    display_game_info(playerWord, playerHp);
     printf("Type your guess: ");
     scanf(" %c", &letter);
-    clear_screen();
+    flush_stdin();
+    clear_console();
+
+    while (!isalpha(letter)) {
+        printf("Provide a valid alphabet character\n");
+        display_game_info(playerWord, playerHp);
+        printf("Type your guess: ");
+        scanf(" %c", &letter);
+        flush_stdin();
+        clear_console();
+    }
     
     return letter;
 }
 
-bool find_letter_matches(String* word, String* str, char letter, u32* lettersFound)
-{
-    bool matchFound = false;
-    char* wordString = word->data;
-
-    for (u32 i = 0; i < word->length; ++i) {
-        if (wordString[i] == letter && str->data[i] == '_') {
-            matchFound = true;
-            str->data[i] = letter;
-            (*lettersFound)++;
-            continue;
-        }
-
-        if (wordString[i] == letter && str->data[i] == letter) {
-            printf("Letter already previously guessed!\n");
-            return false;
-        }
-    }
-
-    return matchFound;
-}
-
 bool hangman_game(String* word)
 {
+    bool usedLetters[26] = {false};
     printf("How many lives would you like? ");
     u32 playerHp;
     scanf("%d", &playerHp);
-    clear_screen();
+    clear_console();
     
     String* underscoreString = create_string(word->length);
     fill_string_with_char(underscoreString, '_');
@@ -74,11 +91,7 @@ bool hangman_game(String* word)
 
     while (!game_won(lettersFound, underscores)) {
         char c = game_turn(underscoreString, playerHp);
-        bool matchFound = find_letter_matches(word, underscoreString, c, &lettersFound);
-
-        if (!matchFound) {
-            playerHp--;
-        }
+        parse_player_guess(word, underscoreString, usedLetters, c, &playerHp, &lettersFound);
 
         if (game_lost(playerHp)) {
             printf("Your current word: %s\n", underscoreString->data);
