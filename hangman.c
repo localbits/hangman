@@ -1,112 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
 #include <stdint.h>
-#include <time.h>
+#include "word_utils.h"
 #include "types.h"
 
-typedef struct {
-    char* data;
-    u32 length;
-} String;
-
-String* dashed_string(const char* word)
+bool game_won(u32 lettersFound, u32 underscores)
 {
-    String* string = (String*)malloc(sizeof(String));
-    u32 wordLen = strlen(word);
-    char* dashedString = (char*)malloc(sizeof(char) * wordLen + 1);
-
-    for (u32 i = 0; i < wordLen; ++i) {
-        dashedString[i] = '-';
-    }
-
-    dashedString[wordLen] = '\0';
-
-    string->length = wordLen;
-    string->data = dashedString;
-
-    return string;
-}
-
-void free_string(String* str)
-{
-    free(str->data);
-    free(str);
-    str = NULL;
-}
-
-String* get_random_word_from_file(const char* fPath)
-{
-    FILE* file = fopen(fPath, "rb");
-    if (file == NULL) {
-        printf("Failed to open file %s", fPath);
-        return NULL;
-    }
-
-    u32 wordCount = 0;
-    while (true) {
-        char c = fgetc(file);
-        if (c == '\n') {
-            wordCount++;
-            continue;
-        }
-        if (c == EOF) {
-            wordCount++;
-            break;
-        }
-    }
-
-    rewind(file);
-
-    srand(time(NULL));
-
-    u32 randomWordIndex = rand() % wordCount;
-
-    u32 wordsRead = 0;
-    while (wordsRead != randomWordIndex) {
-        char c = fgetc(file);
-        if (c == '\n') {
-            wordsRead++;
-        }
-    }
-    
-    u32 wordSize = 0;
-    while (true) {
-        char c = fgetc(file);
-        if (c == EOF || c == '\n') {
-            break;
-        }
-        wordSize++;
-    }
-        
-    String* string = (String*)malloc(sizeof(String));
-    char* word = (char*)malloc(sizeof(char) * wordSize + 1);
-    word[wordSize] = '\0';
-
-    fseek(file, -(wordSize + 1), SEEK_CUR);
-
-    u32 i = 0;
-    while (true) {
-        char c = fgetc(file);
-        if (c == EOF || c == '\n') {
-            break;
-        }
-        word[i] = c;
-        i++;
-    }
-
-    string->data = word;
-    string->length = wordSize;
-
-    fclose(file);
-
-    return string;
-}
-
-bool game_won(u32 lettersFound, u32 dashes)
-{
-    return lettersFound == dashes;
+    return lettersFound == underscores;
 }
 
 bool game_lost(u32 playerHp)
@@ -116,7 +17,11 @@ bool game_lost(u32 playerHp)
 
 void clear_screen(void)
 {
-    system("cls");
+    #ifdef PLATFORM_WINDOWS
+        system("cls");
+    #else
+        system("clear");
+    #endif
 }
 
 char game_turn(String* str, u32 playerHp)
@@ -132,18 +37,20 @@ char game_turn(String* str, u32 playerHp)
     return letter;
 }
 
-bool find_letter_matches(const char* word, String* str, char letter, u32* lettersFound)
+bool find_letter_matches(String* word, String* str, char letter, u32* lettersFound)
 {
     bool matchFound = false;
-    for (u32 i = 0; i < strlen(word); ++i) {
-        if (word[i] == letter && str->data[i] == '-') {
+    char* wordString = word->data;
+
+    for (u32 i = 0; i < word->length; ++i) {
+        if (wordString[i] == letter && str->data[i] == '_') {
             matchFound = true;
             str->data[i] = letter;
             (*lettersFound)++;
             continue;
         }
 
-        if (word[i] == letter && str->data[i] == letter) {
+        if (wordString[i] == letter && str->data[i] == letter) {
             printf("Letter already previously guessed!\n");
             return false;
         }
@@ -152,35 +59,37 @@ bool find_letter_matches(const char* word, String* str, char letter, u32* letter
     return matchFound;
 }
 
-bool hangman_game(const char* word)
+bool hangman_game(String* word)
 {
     printf("How many lives would you like? ");
     u32 playerHp;
     scanf("%d", &playerHp);
     clear_screen();
+    
+    String* underscoreString = create_string(word->length);
+    fill_string_with_char(underscoreString, '_');
 
-    String* dashedString = dashed_string(word);
-    u32 dashes = dashedString->length;
+    u32 underscores = underscoreString->length;
     u32 lettersFound = 0;
 
-    while (!game_won(lettersFound, dashes)) {
-        char c = game_turn(dashedString, playerHp);
-        bool matchFound = find_letter_matches(word, dashedString, c, &lettersFound);
+    while (!game_won(lettersFound, underscores)) {
+        char c = game_turn(underscoreString, playerHp);
+        bool matchFound = find_letter_matches(word, underscoreString, c, &lettersFound);
 
         if (!matchFound) {
             playerHp--;
         }
 
         if (game_lost(playerHp)) {
-            printf("Your current word: %s\n", dashedString->data);
-            printf("The original word was: %s\n", word);
-            free_string(dashedString);
+            printf("Your current word: %s\n", underscoreString->data);
+            printf("The original word was: %s\n", word->data);
+            free_string(underscoreString);
             return false;
         }
     }
     
-    printf("Your current word: %s\n", dashedString->data);
-    free_string(dashedString);
+    printf("Your current word: %s\n", underscoreString->data);
+    free_string(underscoreString);
     
     return true;
 }
@@ -199,7 +108,7 @@ int main(int argc, char* argv[])
 
     String* word = get_random_word_from_file(argv[1]);
 
-    bool gameResult = hangman_game(word->data);
+    bool gameResult = hangman_game(word);
     display_outcome(gameResult);
     free_string(word);
 
