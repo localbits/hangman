@@ -55,3 +55,13 @@ void fill_with_underscores(String* word)
 {
     fill_string_with_char(word, '_');
 }
+
+u32 hash_char(char c)
+{
+    return tolower(c) - '0' - 49;
+}
+
+void replace_string_char_at_idx(String* str, u32 idx, char c)
+{
+    str->data[idx] = c;
+}

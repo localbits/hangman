@@ -2,11 +2,11 @@
 #define HANGMAN_H_
 
 #include "types.h"
+#include "string.h"
 
 typedef struct {
-    u32 hp;
-    u32 lettersFound;
-    bool usedLetters[26];
-} PlayerState;
+    String* secretWord;
+    String* playerWord;
+} GameState;
 
 #endif // HANGMAN_H_
