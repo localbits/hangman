@@ -39,11 +39,14 @@ SRC := $(call rwildcard,$(BUILD_DIR)/,*.c)
 RELEASE_OBJECTS := $(patsubst $(BUILD_DIR)/%.c,$(RELEASE_OBJECT_DIR)/%.o,$(SRC))
 DEBUG_OBJECTS := $(patsubst $(BUILD_DIR)/%.c,$(DEBUG_OBJECT_DIR)/%.o,$(SRC))
 
-.PHONY: all debug clean clean_obj
+.PHONY: all debug clean run clean_obj
 
 all: $(PROGRAM)
 
 debug: $(DEBUG_PROGRAM)
+
+run: $(PROGRAM)
+	./$(PROGRAM)
 
 $(PROGRAM): $(RELEASE_OBJECTS)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@

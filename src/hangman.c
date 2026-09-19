@@ -4,16 +4,17 @@
 #include <stdint.h>
 #include "word_utils.h"
 #include "io_utils.h"
+#include "hangman.h"
 #include "types.h"
 
-bool game_won(u32 lettersFound, u32 underscores)
+bool game_won(PlayerState* p, u32 underscores)
 {
-    return lettersFound == underscores;
+    return p->lettersFound == underscores;
 }
 
-bool game_lost(u32 playerHp)
+bool game_lost(PlayerState* p)
 {
-    return playerHp == 0;
+    return p->hp == 0;
 }
 
 static u32 hash_char(char c)
@@ -21,13 +22,14 @@ static u32 hash_char(char c)
     return tolower(c) - '0' - 49;
 }
 
-void parse_player_guess(String* word, String* playerWord, bool* usedLetters, char guess, u32* hp, u32* lettersFound)
+void parse_player_guess(PlayerState* p, String* word, String* playerWord, char guess)
 {
     bool matchFound = false;
-    u32 guessIdx = hash_char(guess);
+    bool* usedLetters = p->usedLetters;
 
+    u32 guessIdx = hash_char(guess);
     if (usedLetters[guessIdx]) {
-        (*hp)--;
+        p->hp--;
         printf("Letter already previously guessed!\n");
         return;
     }
@@ -37,27 +39,27 @@ void parse_player_guess(String* word, String* playerWord, bool* usedLetters, cha
     for (u32 i = 0; i < word->length; ++i) {
         if (word->data[i] == guess) {
             playerWord->data[i] = guess;
-            (*lettersFound)++;
+            p->lettersFound++;
             matchFound = true;
         }
     }
 
     if (!matchFound) {
-        (*hp)--;
+        p->hp--;
     }
 }
 
-void display_game_info(String* playerWord, u32 playerHp)
+void display_game_info(String* playerWord, PlayerState* p)
 {
     printf("\n-- YOUR TURN --\n");
-    printf("Your HP: %d\n", playerHp);
+    printf("Your HP: %d\n", p->hp);
     printf("Your current word: %s\n", playerWord->data);
 }
 
-char game_turn(String* playerWord, u32 playerHp)
+char game_turn(String* playerWord, PlayerState* p)
 {
     char letter;
-    display_game_info(playerWord, playerHp);
+    display_game_info(playerWord, p);
     printf("Type your guess: ");
     scanf(" %c", &letter);
     flush_stdin();
@@ -65,7 +67,7 @@ char game_turn(String* playerWord, u32 playerHp)
 
     while (!isalpha(letter)) {
         printf("Provide a valid alphabet character\n");
-        display_game_info(playerWord, playerHp);
+        display_game_info(playerWord, p);
         printf("Type your guess: ");
         scanf(" %c", &letter);
         flush_stdin();
@@ -75,34 +77,31 @@ char game_turn(String* playerWord, u32 playerHp)
     return letter;
 }
 
-bool hangman_game(String* word)
+bool hangman_game(PlayerState* p, String* word)
 {
-    bool usedLetters[26] = {false};
     printf("How many lives would you like? ");
-    u32 playerHp;
-    scanf("%d", &playerHp);
+    scanf("%d", &p->hp);
     clear_console();
     
-    String* underscoreString = create_string(word->length);
-    fill_string_with_char(underscoreString, '_');
+    String* playerWord = create_string(word->length);
+    fill_string_with_char(playerWord, '_');
 
-    u32 underscores = underscoreString->length;
-    u32 lettersFound = 0;
+    u32 underscores = playerWord->length;
 
-    while (!game_won(lettersFound, underscores)) {
-        char c = game_turn(underscoreString, playerHp);
-        parse_player_guess(word, underscoreString, usedLetters, c, &playerHp, &lettersFound);
+    while (!game_won(p, underscores)) {
+        char c = game_turn(playerWord, p);
+        parse_player_guess(p, word, playerWord, c);
 
-        if (game_lost(playerHp)) {
-            printf("Your current word: %s\n", underscoreString->data);
+        if (game_lost(p)) {
+            printf("Your current word: %s\n", playerWord->data);
             printf("The original word was: %s\n", word->data);
-            free_string(underscoreString);
+            free_string(playerWord);
             return false;
         }
     }
     
-    printf("Your current word: %s\n", underscoreString->data);
-    free_string(underscoreString);
+    printf("Your current word: %s\n", playerWord->data);
+    free_string(playerWord);
     
     return true;
 }
@@ -120,8 +119,9 @@ int main(int argc, char* argv[])
     }
 
     String* word = get_random_word_from_file(argv[1]);
-
-    bool gameResult = hangman_game(word);
+    PlayerState p = {0};
+    
+    bool gameResult = hangman_game(&p, word);
     display_outcome(gameResult);
     free_string(word);
 
